@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#062a6e">
+<meta name="robots" content="noindex">
+<title>Upholstery Dashboard</title>
+<link rel="icon" href="logo.png">
+<style>
+  :root { --brand:#062a6e; --brand-soft:#eef2fa; --ink:#1a1a1a; --muted:#5f6670; --tape:#f26b1d; --line:#dde2ea; --bg:#f4f6f9; --ok:#1e7d32; --err:#b3261e; --err-soft:#fdecea; --warn-soft:#fff4e5; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.4 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  button, input { font:inherit; touch-action:manipulation; }
+  header { background:#fff; border-bottom:4px solid var(--tape); }
+  header .in { max-width:880px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; gap:14px; }
+  header img { height:36px; width:auto; display:block; }
+  header h1 { font-size:18px; margin:0; color:var(--brand); line-height:1.15; flex:1; min-width:0; }
+  header h1 small { display:block; font-size:13px; color:var(--muted); font-weight:400; }
+  .icon-btn { border:1.5px solid var(--line); background:#fff; border-radius:10px; padding:8px 12px; color:var(--brand); font-weight:700; font-size:14px; cursor:pointer; white-space:nowrap; }
+  .icon-btn:disabled { opacity:.5; }
+  main { max-width:880px; margin:0 auto; padding:0 16px calc(40px + env(safe-area-inset-bottom)); }
+  .sync { font-size:13px; color:var(--muted); margin:10px 2px 0; min-height:1.2em; }
+  .card { background:#fff; border:1px solid #e6e9ef; border-radius:12px; padding:16px; }
+
+  /* PIN gate */
+  .gate { max-width:360px; margin:40px auto 0; text-align:center; }
+  .gate h2 { margin:0 0 6px; font-size:20px; color:var(--brand); }
+  .gate p { margin:0 0 14px; color:var(--muted); font-size:14px; }
+  .gate input { width:100%; padding:14px; font-size:22px; letter-spacing:.3em; text-align:center; border:2px solid var(--line); border-radius:10px; }
+  .gate input:focus { outline:none; border-color:var(--brand); }
+  .err { color:var(--err); font-weight:600; min-height:1.2em; margin:10px 0 0; font-size:14px; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; border:0; border-radius:10px; padding:12px 16px; font-weight:700; background:var(--brand); color:#fff; cursor:pointer; }
+  .btn.block { width:100%; margin-top:12px; padding:14px; font-size:17px; }
+  .btn.ghost { background:#fff; color:var(--brand); border:1.5px solid var(--line); }
+  .btn.ok { background:var(--ok); }
+  .btn:disabled { opacity:.55; cursor:default; }
+  .spin { width:16px; height:16px; border-radius:50%; border:3px solid rgba(255,255,255,.35); border-top-color:#fff; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* summary */
+  .tiles { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:12px; }
+  .tile { background:#fff; border:1px solid #e6e9ef; border-radius:12px; padding:12px; }
+  .tile b { display:block; font-size:28px; line-height:1.1; color:var(--brand); }
+  .tile span { font-size:13px; color:var(--muted); }
+  .tile.alert b { color:var(--err); }
+
+  /* lists */
+  h2.sec { font-size:16px; margin:22px 2px 8px; color:var(--brand); }
+  h2.sec small { display:block; color:var(--muted); font-weight:400; font-size:13px; margin-top:2px; }
+  .empty { color:var(--muted); font-size:14px; padding:14px 16px; background:#fff; border:1px dashed var(--line); border-radius:12px; }
+  .job { background:#fff; border:1px solid #e6e9ef; border-left:5px solid var(--line); border-radius:12px; padding:14px; margin-bottom:10px; }
+  .job.ready { border-left-color:var(--brand); }
+  .job.stuck { border-left-color:var(--err); }
+  .job .top { display:flex; align-items:flex-start; gap:10px; }
+  .job .name { font-weight:700; font-size:17px; flex:1; min-width:0; overflow-wrap:anywhere; }
+  .badge { flex:none; font-size:13px; font-weight:700; border-radius:999px; padding:3px 10px; background:var(--brand-soft); color:var(--brand); white-space:nowrap; }
+  .job.stuck .badge { background:var(--err-soft); color:var(--err); }
+  .meta { font-size:13px; color:var(--muted); margin-top:4px; }
+  .pieces { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .pieces span { font-size:13px; background:#f4f6f9; border:1px solid var(--line); border-radius:999px; padding:3px 10px; }
+  .notes { font-size:14px; margin-top:10px; padding:8px 10px; background:var(--warn-soft); border-radius:8px; }
+  .actions { margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .confirm { margin-top:12px; padding:12px; border-radius:10px; background:var(--brand-soft); }
+  .confirm label { display:block; font-size:14px; font-weight:700; margin-bottom:6px; }
+  .confirm label small { font-weight:400; color:var(--muted); }
+  .confirm input[type=date] { width:100%; padding:10px; border:2px solid var(--line); border-radius:8px; background:#fff; font-size:16px; }
+  .confirm .row { display:flex; gap:8px; margin-top:10px; }
+  .confirm .row .btn { flex:1; }
+  .job .err { margin-top:8px; }
+  .toast { position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 16px; border-radius:10px; font-size:14px; box-shadow:0 4px 16px rgba(0,0,0,.2); max-width:calc(100% - 32px); }
+  footer { margin-top:26px; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:14px; }
+  footer a, footer button { color:var(--brand); background:none; border:0; padding:0; font-weight:600; cursor:pointer; text-decoration:underline; }
+  [hidden] { display:none !important; }
+  @media (max-width:420px) { .tile b { font-size:24px; } .tile { padding:10px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="in">
+    <img src="logo.png" alt="ACE Fitness" width="105" height="36">
+    <h1>Upholstery Dashboard<small>Outstanding jobs (not scheduled yet)</small></h1>
+    <button class="icon-btn" id="refresh" type="button" hidden>Refresh</button>
+  </div>
+</header>
+
+<main>
+  <section class="gate" id="gate" hidden>
+    <div class="card">
+      <h2>Director PIN</h2>
+      <p>Enter the PIN from the tracker sheet (Settings tab, cell F10). This phone will remember it.</p>
+      <form id="pinForm" autocomplete="off">
+        <input id="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="12" aria-label="PIN">
+        <button class="btn block" id="unlock" type="submit">Unlock</button>
+      </form>
+      <p class="err" id="pinErr" role="alert"></p>
+    </div>
+  </section>
+
+  <section id="board" hidden>
+    <p class="sync" id="sync"></p>
+    <div class="tiles">
+      <div class="tile"><b id="nReady">–</b><span>Ready to schedule</span></div>
+      <div class="tile"><b id="nWaiting">–</b><span>Waiting on Tucson</span></div>
+      <div class="tile" id="tileStuck"><b id="nStuck">–</b><span>Overdue</span></div>
+    </div>
+
+    <h2 class="sec">Ready for reinstallation <small id="readyHint"></small></h2>
+    <div id="readyList"></div>
+
+    <h2 class="sec">Checked in at shop <small id="inHint"></small></h2>
+    <div id="inList"></div>
+
+    <footer>
+      <a id="sheetLink" href="#" target="_blank" rel="noopener" hidden>Open the tracker sheet</a>
+      <button type="button" id="lock">Lock this device</button>
+    </footer>
+  </section>
+</main>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function () {
+  var API = 'https://script.google.com/macros/s/AKfycbyF8ILEE7fWFd0yLoEDiA5VPdilxNRNKFPLhlurIeBj830W5Az_IKsza6Pm2gN7p07Q/exec';
+  var PIN_KEY = 'ace-admin-pin';
+  var $ = function (id) { return document.getElementById(id); };
+  function store(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
+  function recall(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+  var pin = recall(PIN_KEY) || '';
+  var loading = false;
+  var openConfirm = null; // job label whose confirm panel is open
+
+  function post(body) {
+    var ctl = window.AbortController ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function () { ctl.abort(); }, 30000) : null;
+    return fetch(API, { method: 'POST', body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { if (timer) clearTimeout(timer); return r.json(); },
+            function (e) { if (timer) clearTimeout(timer); throw e; });
+  }
+  function netError(e) {
+    return e && e.name === 'AbortError' ? 'The server is slow to answer. Try again.' : 'Couldn’t reach the server. Check your connection and try again.';
+  }
+
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(function () { t.hidden = true; }, 3500);
+  }
+
+  // ---------- PIN gate ----------
+  function showGate(msg) {
+    $('board').hidden = true; $('refresh').hidden = true; $('gate').hidden = false;
+    $('pinErr').textContent = msg || '';
+    $('pin').value = '';
+    setTimeout(function () { $('pin').focus(); }, 50);
+  }
+  function badPin(msg) { return /PIN|not set up/.test(msg || ''); }
+
+  $('pinForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var v = $('pin').value.trim();
+    if (!v) { $('pinErr').textContent = 'Enter the PIN.'; return; }
+    $('unlock').disabled = true; $('unlock').innerHTML = '<span class="spin"></span>Checking…';
+    post({ action: 'jobs', key: v }).then(function (res) {
+      $('unlock').disabled = false; $('unlock').textContent = 'Unlock';
+      if (!res.ok) { $('pinErr').textContent = res.error || 'Something went wrong.'; $('pin').value = ''; $('pin').focus(); return; }
+      pin = v; store(PIN_KEY, v);
+      showBoard(); render(res);
+    }).catch(function (e) {
+      $('unlock').disabled = false; $('unlock').textContent = 'Unlock';
+      $('pinErr').textContent = netError(e);
+    });
+  });
+
+  $('lock').addEventListener('click', function () { pin = ''; store(PIN_KEY, null); showGate(); });
+
+  // ---------- board ----------
+  function showBoard() { $('gate').hidden = true; $('board').hidden = false; $('refresh').hidden = false; }
+
+  function load(quiet) {
+    if (loading || !pin) return;
+    loading = true;
+    $('refresh').disabled = true;
+    if (!quiet) $('sync').textContent = 'Loading…';
+    post({ action: 'jobs', key: pin }).then(function (res) {
+      loading = false; $('refresh').disabled = false;
+      if (!res.ok) {
+        if (badPin(res.error)) { pin = ''; store(PIN_KEY, null); showGate(res.error); return; }
+        $('sync').textContent = res.error || 'Something went wrong.'; return;
+      }
+      render(res);
+    }).catch(function (e) {
+      loading = false; $('refresh').disabled = false;
+      $('sync').textContent = netError(e);
+    });
+  }
+
+  function fmtDate(iso) {
+    var d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  function dayText(n) { return n === 0 ? 'today' : n === 1 ? '1 day' : n + ' days'; }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+
+  function render(res) {
+    var ready = res.jobs.filter(function (j) { return j.status === res.statuses.ready; });
+    var waiting = res.jobs.filter(function (j) { return j.status !== res.statuses.ready; });
+    var stuck = res.jobs.filter(function (j) { return j.stuck; }).length;
+    $('nReady').textContent = ready.length;
+    $('nWaiting').textContent = waiting.length;
+    $('nStuck').textContent = stuck;
+    $('tileStuck').className = stuck ? 'tile alert' : 'tile';
+    $('readyHint').textContent = 'overdue after ' + res.limits.ready + ' days';
+    $('inHint').textContent = 'waiting on Tucson · overdue after ' + res.limits.checkedIn + ' days';
+    renderList($('readyList'), ready, true, 'Nothing is waiting to be scheduled.');
+    renderList($('inList'), waiting, false, 'Nothing is at the upholsterer right now.');
+    if (res.sheetUrl) { $('sheetLink').href = res.sheetUrl; $('sheetLink').hidden = false; }
+    $('sync').textContent = 'Updated ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+
+  function renderList(box, jobs, isReady, emptyText) {
+    box.innerHTML = '';
+    if (!jobs.length) { box.appendChild(el('div', 'empty', emptyText)); return; }
+    jobs.forEach(function (j) { box.appendChild(jobCard(j, isReady)); });
+  }
+
+  function jobCard(j, isReady) {
+    var card = el('div', 'job' + (isReady ? ' ready' : '') + (j.stuck ? ' stuck' : ''));
+    var top = el('div', 'top');
+    top.appendChild(el('div', 'name', j.client));
+    top.appendChild(el('span', 'badge', (isReady ? 'Ready ' : 'Out ') + dayText(j.days) + (j.stuck ? ' – overdue' : '')));
+    card.appendChild(top);
+
+    var meta = 'Checked in ' + fmtDate(j.checkedIn);
+    if (isReady) meta += ' · back ' + fmtDate(j.since);
+    if (j.tech) meta += ' · last logged by ' + j.tech;
+    card.appendChild(el('div', 'meta', meta));
+
+    var pcs = el('div', 'pieces');
+    if (j.pieces.length) j.pieces.forEach(function (p, i) { pcs.appendChild(el('span', '', 'Item ' + (i + 1) + ': ' + p)); });
+    else pcs.appendChild(el('span', '', j.pieceCount + ' piece' + (j.pieceCount == 1 ? '' : 's')));
+    card.appendChild(pcs);
+    if (j.notes) card.appendChild(el('div', 'notes', j.notes));
+
+    var actions = el('div', 'actions');
+    var mark = el('button', isReady ? 'btn' : 'btn ghost', 'Mark scheduled');
+    mark.type = 'button';
+    actions.appendChild(mark);
+    card.appendChild(actions);
+
+    var conf = el('div', 'confirm');
+    conf.hidden = openConfirm !== j.job;
+    var lab = el('label');
+    lab.appendChild(document.createTextNode('Reinstall date '));
+    lab.appendChild(el('small', '', '(optional)'));
+    var date = el('input'); date.type = 'date';
+    var row = el('div', 'row');
+    var cancel = el('button', 'btn ghost', 'Cancel'); cancel.type = 'button';
+    var ok = el('button', 'btn ok', 'Confirm scheduled'); ok.type = 'button';
+    row.appendChild(cancel); row.appendChild(ok);
+    conf.appendChild(lab); conf.appendChild(date); conf.appendChild(row);
+    var err = el('p', 'err'); err.setAttribute('role', 'alert');
+    conf.appendChild(err);
+    card.appendChild(conf);
+
+    mark.addEventListener('click', function () { openConfirm = j.job; conf.hidden = false; actions.hidden = true; });
+    if (!conf.hidden) actions.hidden = true;
+    cancel.addEventListener('click', function () { openConfirm = null; conf.hidden = true; actions.hidden = false; err.textContent = ''; });
+
+    var rid = null;
+    ok.addEventListener('click', function () {
+      rid = rid || ('dash-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8));
+      var when = '';
+      if (date.value) {
+        var p = date.value.split('-');
+        when = new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      }
+      ok.disabled = true; cancel.disabled = true; ok.innerHTML = '<span class="spin"></span>Saving…'; err.textContent = '';
+      post({ action: 'schedule', key: pin, job: j.job, date: when, rid: rid }).then(function (res) {
+        if (!res.ok) {
+          ok.disabled = false; cancel.disabled = false; ok.textContent = 'Confirm scheduled';
+          if (badPin(res.error)) { pin = ''; store(PIN_KEY, null); showGate(res.error); return; }
+          err.textContent = res.error || 'Something went wrong. Try again.';
+          return;
+        }
+        openConfirm = null;
+        toast(j.client + ' marked scheduled' + (when ? ' for ' + when : '') + '.');
+        render(res);
+      }).catch(function (e) {
+        ok.disabled = false; cancel.disabled = false; ok.textContent = 'Confirm scheduled';
+        err.textContent = netError(e) + ' It won’t be logged twice.';
+      });
+    });
+    return card;
+  }
+
+  $('refresh').addEventListener('click', function () { load(false); });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && pin && !$('board').hidden && !openConfirm) load(true);
+  });
+
+  if (pin) { showBoard(); load(false); } else showGate();
+})();
+</script>
+</body>
+</html>
