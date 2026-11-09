@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#062a6e">
+<meta name="robots" content="noindex">
+<title>Upholstery Check-In</title>
+<link rel="icon" href="logo.png">
+<style>
+  :root { --brand:#062a6e; --brand-soft:#eef2fa; --ink:#1a1a1a; --muted:#5f6670; --tape:#f26b1d; --line:#d6dbe3; --bg:#f4f6f9; --ok:#1e7d32; --err:#b3261e; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.4 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  button, input, select, textarea { touch-action:manipulation; }
+  main { max-width:520px; margin:0 auto; padding:0 16px calc(32px + env(safe-area-inset-bottom)); }
+  header { background:#fff; border-bottom:4px solid var(--tape); }
+  header .in { max-width:520px; margin:0 auto; padding:14px 16px 12px; display:flex; align-items:center; gap:14px; }
+  header img { height:40px; width:auto; display:block; }
+  header h1 { font-size:18px; margin:0; color:var(--brand); line-height:1.15; }
+  header p { margin:2px 0 0; color:var(--muted); font-size:13px; }
+  .sync { font-size:13px; color:var(--muted); margin:10px 2px 0; min-height:1.2em; }
+  .card { background:#fff; border-radius:12px; padding:16px; margin-top:12px; border:1px solid #e6e9ef; }
+  .q { font-weight:700; margin:0 0 4px; font-size:17px; }
+  .hint { color:var(--muted); font-size:14px; margin:0 0 10px; }
+  .choices { display:grid; gap:8px; margin-top:10px; }
+  .choice { display:flex; gap:12px; align-items:flex-start; border:2px solid var(--line); border-radius:10px; padding:12px; background:#fff; text-align:left; width:100%; font:inherit; color:inherit; cursor:pointer; }
+  .choice[aria-checked="true"] { border-color:var(--brand); background:var(--brand-soft); }
+  .dot { flex:none; width:22px; height:22px; border-radius:50%; border:2px solid #9aa3af; margin-top:1px; position:relative; }
+  .choice[aria-checked="true"] .dot { border-color:var(--brand); }
+  .choice[aria-checked="true"] .dot::after { content:""; position:absolute; inset:4px; border-radius:50%; background:var(--brand); }
+  .choice b { display:block; }
+  .choice small { color:var(--muted); font-size:13px; }
+  label { display:block; font-weight:700; margin:0 0 14px; }
+  label small { font-weight:400; color:var(--muted); }
+  label:last-child { margin-bottom:0; }
+  input, select, textarea { display:block; width:100%; margin-top:6px; padding:12px; font:inherit; font-size:16px; font-weight:400; border:2px solid var(--line); border-radius:10px; background:#fff; color:var(--ink); }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--brand); }
+  .item { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .item .n { flex:none; width:58px; font-weight:700; font-size:14px; }
+  .item input { margin-top:0; flex:1; min-width:0; }
+  .item .rm { flex:none; width:40px; height:44px; border:0; background:none; font-size:24px; color:#9aa3af; cursor:pointer; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 10px; }
+  .chip { border:1.5px solid var(--line); background:#fafbfc; border-radius:999px; padding:8px 12px; font:inherit; font-size:14px; color:var(--ink); cursor:pointer; }
+  .add { border:2px dashed var(--line); background:none; border-radius:10px; width:100%; padding:12px; font:inherit; font-weight:700; color:var(--brand); cursor:pointer; }
+  .check { display:flex; align-items:center; gap:12px; padding:12px; border:2px solid var(--line); border-radius:10px; margin-bottom:8px; font-weight:400; cursor:pointer; }
+  .check input { width:22px; height:22px; margin:0; flex:none; accent-color:var(--brand); }
+  .check.on { border-color:var(--brand); background:var(--brand-soft); }
+  .check .n { font-weight:700; font-size:14px; width:54px; flex:none; }
+  .count { font-size:14px; color:var(--muted); margin:8px 0 0; }
+  .err { color:var(--err); font-weight:600; min-height:1.2em; margin:14px 2px 0; }
+  .btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; margin-top:12px; padding:16px; font:inherit; font-size:18px; font-weight:700; border:0; border-radius:12px; background:var(--brand); color:#fff; cursor:pointer; }
+  .btn:disabled { opacity:.5; cursor:default; }
+  .spin { width:18px; height:18px; border-radius:50%; border:3px solid rgba(255,255,255,.35); border-top-color:#fff; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .done { text-align:center; padding:28px 16px; }
+  .done .tick { width:64px; height:64px; border-radius:50%; background:var(--ok); color:#fff; font-size:38px; line-height:64px; margin:0 auto 10px; }
+  .done h2 { margin:0 0 6px; }
+  .done p { color:var(--muted); margin:0 0 6px; }
+  .note { font-size:14px; background:var(--brand-soft); border-left:4px solid var(--brand); padding:10px 12px; border-radius:6px; margin-top:12px; text-align:left; }
+  .note.warn { background:#fff4e5; border-left-color:var(--tape); }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<header>
+  <div class="in">
+    <img src="logo.png" alt="ACE Fitness" width="117" height="40">
+    <div>
+      <h1>Upholstery Check-In</h1>
+      <p>One entry per client, every time it changes hands.</p>
+    </div>
+  </div>
+</header>
+<main>
+  <p class="sync" id="sync"></p>
+
+  <form id="f" novalidate>
+    <div class="card">
+      <p class="q">What are you logging?</p>
+      <div class="choices" id="statuses" role="radiogroup"></div>
+    </div>
+
+    <div class="card" id="newClient" hidden>
+      <label>Client name <small>exactly as on the orange tape</small>
+        <input id="client" autocomplete="off" autocapitalize="words">
+      </label>
+    </div>
+
+    <div class="card" id="existing" hidden>
+      <label>Client / job
+        <select id="job"></select>
+      </label>
+      <label id="otherWrap" hidden>Client name <small>exactly as on the orange tape</small>
+        <input id="other" autocomplete="off" autocapitalize="words">
+      </label>
+    </div>
+
+    <div class="card" id="piecesCard" hidden>
+      <div id="entry">
+        <p class="q">Pieces</p>
+        <p class="hint">One line per piece. Tap a name or type your own.</p>
+        <div class="chips" id="chips"></div>
+        <div id="items"></div>
+        <button type="button" class="add" id="addItem">+ Add another piece</button>
+      </div>
+      <div id="checklist" hidden>
+        <p class="q">Which pieces do you have?</p>
+        <p class="hint">Uncheck any piece that isn't with you.</p>
+        <div id="checks"></div>
+      </div>
+      <p class="count" id="count"></p>
+    </div>
+
+    <div class="card" id="details" hidden>
+      <label>Your name
+        <select id="tech"></select>
+      </label>
+      <label>Notes <small>(optional)</small>
+        <textarea id="notes" rows="3" placeholder="Damage, color, missing pieces, special instructions"></textarea>
+      </label>
+    </div>
+
+    <p class="err" id="err" role="alert"></p>
+    <button class="btn" id="go" type="submit" disabled>Submit</button>
+  </form>
+
+  <div class="card done" id="done" hidden>
+    <div class="tick">&#10003;</div>
+    <h2>Logged</h2>
+    <p id="doneMsg"></p>
+    <div class="note" id="doneNote"></div>
+    <button class="btn" id="again" type="button">Log another client</button>
+  </div>
+</main>
+
+<script>
+(function () {
+  // Apps Script endpoint: GET ?action=data for lists, POST to log an entry.
+  var API = 'https://script.google.com/macros/s/AKfycbyF8ILEE7fWFd0yLoEDiA5VPdilxNRNKFPLhlurIeBj830W5Az_IKsza6Pm2gN7p07Q/exec';
+  var CACHE_KEY = 'ace-upholstery-data';
+  var TECH_KEY = 'ace-upholstery-tech';
+  var FALLBACK = {
+    statuses: ['Checked in at shop', 'Ready for reinstallation', 'Scheduled'],
+    newStatus: 'Checked in at shop', backStatus: 'Ready for reinstallation', finalStatus: 'Scheduled',
+    notListed: 'Not in list (type the name below)', openJobs: [], techs: []
+  };
+  var HELP = {
+    'Checked in at shop': 'You just brought it back from a client (alerts the Director)',
+    'Ready for reinstallation': 'It’s back from Tucson and in the shop (alerts the Director)',
+    'Scheduled': 'The reinstall is on the calendar (closes the job)'
+  };
+  var QUICK = ['Seat pad', 'Back pad', 'Head pad', 'Bench pad', 'Arm pad', 'Roller pad', 'Leg pad', 'Chest pad'];
+
+  var $ = function (id) { return document.getElementById(id); };
+  function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function recall(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+  var cached = null;
+  try { cached = JSON.parse(recall(CACHE_KEY) || 'null'); } catch (e) {}
+  var DATA = cached || FALLBACK;
+  var loaded = false;
+  var state = { status: '', mode: 'entry', rid: null, busy: false };
+
+  // ---------- server ----------
+  function call(url, opts) {
+    var ctl = window.AbortController ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function () { ctl.abort(); }, 30000) : null;
+    opts = opts || {};
+    if (ctl) opts.signal = ctl.signal;
+    return fetch(url, opts).then(function (r) {
+      if (timer) clearTimeout(timer);
+      return r.json();
+    }, function (e) {
+      if (timer) clearTimeout(timer);
+      throw e;
+    });
+  }
+
+  function setData(d) {
+    DATA = d;
+    loaded = true;
+    store(CACHE_KEY, JSON.stringify(d));
+    renderLists();
+    $('sync').textContent = '';
+  }
+
+  function loadData() {
+    $('sync').textContent = cached ? 'Updating job list…' : 'Loading job list…';
+    call(API + '?action=data').then(function (r) {
+      if (r && r.ok) setData(r.data); else throw new Error(r && r.error);
+    }).catch(function () {
+      $('sync').textContent = cached
+        ? 'Couldn’t refresh the job list. Showing the last one saved on this phone.'
+        : 'Couldn’t load the job list. Check your signal and reload the page.';
+    });
+  }
+
+  // ---------- rendering ----------
+  function option(sel, value, text, placeholder) {
+    var o = document.createElement('option');
+    o.value = value; o.textContent = text || value;
+    // defaultSelected so a form reset goes back to the placeholder, not the first real option.
+    if (placeholder) { o.disabled = true; o.defaultSelected = true; o.selected = true; }
+    sel.appendChild(o);
+  }
+
+  function jobPieces(label) {
+    for (var i = 0; i < DATA.openJobs.length; i++) if (DATA.openJobs[i].label === label) return DATA.openJobs[i].pieces || [];
+    return [];
+  }
+
+  function renderLists() {
+    var job = $('job'), keepJob = job.value;
+    job.innerHTML = '';
+    var none = !loaded && !DATA.openJobs.length ? 'Loading…'
+      : DATA.openJobs.length ? 'Pick the client…' : 'No open jobs – pick “Not in list”';
+    option(job, '', none, true);
+    DATA.openJobs.forEach(function (j) { option(job, j.label); });
+    option(job, DATA.notListed);
+    if (keepJob && Array.prototype.some.call(job.options, function (o) { return o.value === keepJob; })) job.value = keepJob;
+
+    var tech = $('tech'), keepTech = tech.value || recall(TECH_KEY) || '';
+    tech.innerHTML = '';
+    option(tech, '', DATA.techs.length ? 'Pick your name…' : 'Loading…', true);
+    DATA.techs.forEach(function (t) { option(tech, t); });
+    if (keepTech && DATA.techs.indexOf(keepTech) !== -1) tech.value = keepTech;
+  }
+
+  function renderStatuses() {
+    var box = $('statuses');
+    box.innerHTML = '';
+    DATA.statuses.forEach(function (s) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'choice'; b.setAttribute('role', 'radio');
+      b.setAttribute('aria-checked', String(state.status === s));
+      b.innerHTML = '<span class="dot"></span><span><b></b><small></small></span>';
+      b.querySelector('b').textContent = s;
+      b.querySelector('small').textContent = HELP[s] || '';
+      b.addEventListener('click', function () { pick(s); });
+      box.appendChild(b);
+    });
+  }
+
+  // ---------- pieces ----------
+  function itemInputs() { return Array.prototype.slice.call($('items').querySelectorAll('input')); }
+
+  function renumber() {
+    var rows = $('items').querySelectorAll('.item');
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].querySelector('.n').textContent = 'Item ' + (i + 1);
+      rows[i].querySelector('.rm').hidden = rows.length === 1;
+    }
+    updateCount();
+  }
+
+  function addItem(value, focus) {
+    var row = document.createElement('div');
+    row.className = 'item';
+    row.innerHTML = '<span class="n"></span><input autocomplete="off" autocapitalize="sentences" placeholder="e.g. Head pad"><button type="button" class="rm" aria-label="Remove piece">&times;</button>';
+    var input = row.querySelector('input');
+    input.value = value || '';
+    input.addEventListener('input', updateCount);
+    row.querySelector('.rm').addEventListener('click', function () { row.parentNode.removeChild(row); renumber(); });
+    $('items').appendChild(row);
+    renumber();
+    if (focus) input.focus();
+  }
+
+  function quickAdd(name) {
+    var empty = itemInputs().filter(function (i) { return !i.value.trim(); })[0];
+    if (empty) { empty.value = name; updateCount(); } else addItem(name, false);
+  }
+
+  function renderChecks(pieces) {
+    var box = $('checks');
+    box.innerHTML = '';
+    pieces.forEach(function (p, i) {
+      var l = document.createElement('label');
+      l.className = 'check on';
+      l.innerHTML = '<input type="checkbox" checked><span class="n"></span><span class="t"></span>';
+      l.querySelector('.n').textContent = 'Item ' + (i + 1);
+      l.querySelector('.t').textContent = p;
+      var cb = l.querySelector('input');
+      cb.value = p;
+      cb.addEventListener('change', function () { l.className = cb.checked ? 'check on' : 'check'; updateCount(); });
+      box.appendChild(l);
+    });
+  }
+
+  function setMode() {
+    var isNew = state.status === DATA.newStatus;
+    var isFinal = state.status === DATA.finalStatus;
+    var job = $('job').value;
+    var known = !isNew && job && job !== DATA.notListed ? jobPieces(job) : [];
+    state.mode = known.length ? 'check' : 'entry';
+    $('entry').hidden = state.mode !== 'entry';
+    $('checklist').hidden = state.mode !== 'check';
+    if (state.mode === 'check') renderChecks(known);
+    else if (!itemInputs().length) addItem('', false);
+    // Scheduling a known job just closes it, so the pieces don't need checking again.
+    $('piecesCard').hidden = (!isNew && !job) || (isFinal && state.mode === 'check');
+    updateCount();
+  }
+
+  function collectPieces() {
+    if (state.mode === 'check') {
+      return Array.prototype.slice.call($('checks').querySelectorAll('input:checked')).map(function (c) { return c.value; });
+    }
+    return itemInputs().map(function (i) { return i.value.trim(); }).filter(Boolean);
+  }
+
+  function updateCount() {
+    var n = collectPieces().length;
+    var total = state.mode === 'check' ? $('checks').querySelectorAll('input').length : 0;
+    $('count').textContent = state.mode === 'check'
+      ? n + ' of ' + total + ' piece' + (total === 1 ? '' : 's')
+      : n + ' piece' + (n === 1 ? '' : 's');
+  }
+
+  function pick(s) {
+    state.status = s;
+    renderStatuses();
+    var isNew = s === DATA.newStatus;
+    $('newClient').hidden = !isNew;
+    $('existing').hidden = isNew;
+    $('details').hidden = false;
+    $('go').disabled = false;
+    $('err').textContent = '';
+    setMode();
+  }
+
+  // ---------- submit ----------
+  function setBusy(on) {
+    state.busy = on;
+    $('go').disabled = on;
+    $('go').innerHTML = on ? '<span class="spin"></span>Saving…' : 'Submit';
+  }
+
+  function showDone(res, piecesCount, warning) {
+    if (res.data) setData(res.data);
+    $('doneMsg').textContent = res.client + ' → ' + res.status + ' (' + piecesCount + ' piece' + (piecesCount === 1 ? '' : 's') + ')';
+    var note = $('doneNote');
+    note.className = warning ? 'note warn' : 'note';
+    note.textContent = warning || (res.status === DATA.backStatus
+      ? 'The Director has been emailed to schedule the reinstall.'
+      : res.status === DATA.newStatus
+        ? 'The Director has been emailed. Make sure every piece has orange tape with the client name.'
+        : 'Job closed. It is off the open-jobs list.');
+    $('f').hidden = true; $('done').hidden = false;
+    window.scrollTo(0, 0);
+  }
+
+  $('f').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (state.busy) return;
+    var d = {
+      status: state.status, client: $('client').value, job: $('job').value, other: $('other').value,
+      pieces: collectPieces(), tech: $('tech').value, notes: $('notes').value
+    };
+    var err = '';
+    if (!d.status) err = 'Pick what you are logging.';
+    else if (d.status === DATA.newStatus && !d.client.trim()) err = 'Enter the client name from the orange tape.';
+    else if (d.status !== DATA.newStatus && !d.job) err = 'Pick the client / job.';
+    else if (d.job === DATA.notListed && d.status !== DATA.newStatus && !d.other.trim()) err = 'Type the client name from the orange tape.';
+    else if (!d.pieces.length) err = state.mode === 'check' ? 'Check at least one piece.' : 'Add at least one piece.';
+    else if (!d.tech) err = 'Pick your name.';
+    if (err) { $('err').textContent = err; return; }
+
+    store(TECH_KEY, d.tech);
+    // Same id on every retry of this entry, so a second tap never logs it twice.
+    state.rid = state.rid || ('web-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8));
+    d.rid = state.rid;
+    $('err').textContent = '';
+    setBusy(true);
+
+    call(API, { method: 'POST', body: JSON.stringify(d) }).then(function (res) {
+      setBusy(false);
+      if (res && res.ok) { state.rid = null; showDone(res, d.pieces.length); return; }
+      var msg = (res && res.error) || 'Something went wrong. Tap Submit again.';
+      if (/^Logged/.test(msg)) {
+        state.rid = null;
+        showDone({ client: d.status === DATA.newStatus ? d.client.trim() : (d.other.trim() || d.job), status: d.status }, d.pieces.length,
+          'Saved, but the email to the Director didn’t go out. Let the Director know.');
+        loadData();
+        return;
+      }
+      $('err').textContent = msg;
+    }).catch(function (e) {
+      setBusy(false);
+      $('err').textContent = e && e.name === 'AbortError'
+        ? 'The server is slow to answer. Tap Submit again. It won’t log twice.'
+        : 'Couldn’t reach the server. Check your signal and tap Submit again.';
+    });
+  });
+
+  // ---------- wiring ----------
+  $('job').addEventListener('change', function () {
+    $('otherWrap').hidden = $('job').value !== DATA.notListed;
+    setMode();
+  });
+  $('addItem').addEventListener('click', function () { addItem('', true); });
+  QUICK.forEach(function (name) {
+    var c = document.createElement('button');
+    c.type = 'button'; c.className = 'chip'; c.textContent = '+ ' + name;
+    c.addEventListener('click', function () { quickAdd(name); });
+    $('chips').appendChild(c);
+  });
+
+  $('again').addEventListener('click', function () {
+    $('f').reset();
+    state.status = ''; state.rid = null;
+    ['newClient', 'existing', 'piecesCard', 'details', 'otherWrap'].forEach(function (id) { $(id).hidden = true; });
+    $('items').innerHTML = '';
+    $('err').textContent = '';
+    setBusy(false); $('go').disabled = true;
+    renderStatuses(); renderLists();
+    $('done').hidden = true; $('f').hidden = false;
+    window.scrollTo(0, 0);
+    loadData();
+  });
+
+  renderStatuses();
+  renderLists();
+  loadData();
+})();
+</script>
+</body>
+</html>
