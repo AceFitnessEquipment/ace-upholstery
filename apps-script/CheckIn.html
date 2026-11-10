@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root { --ink:#1a1a1a; --muted:#666; --orange:#f26b1d; --line:#d6d6d6; --bg:#f4f4f4; --ok:#1e7d32; --err:#b3261e; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.4 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  main { max-width:520px; margin:0 auto; padding:0 16px 40px; }
+  header { padding:18px 0 6px; }
+  .stripe { height:10px; border-radius:3px; background:repeating-linear-gradient(-45deg,var(--orange) 0 12px,#fff 12px 20px); }
+  h1 { font-size:26px; margin:14px 0 4px; }
+  header p { margin:0; color:var(--muted); font-size:14px; }
+  .card { background:#fff; border-radius:12px; padding:16px; margin-top:14px; box-shadow:0 1px 2px rgba(0,0,0,.08); }
+  .q { font-weight:700; margin:0 0 4px; font-size:17px; }
+  .hint { color:var(--muted); font-size:14px; margin:0 0 10px; }
+  .choices { display:grid; gap:8px; margin-top:10px; }
+  .choice { display:flex; gap:12px; align-items:flex-start; border:2px solid var(--line); border-radius:10px; padding:12px; cursor:pointer; background:#fff; text-align:left; width:100%; font:inherit; color:inherit; }
+  .choice[aria-checked="true"] { border-color:var(--orange); background:#fff5ee; }
+  .dot { flex:none; width:22px; height:22px; border-radius:50%; border:2px solid #999; margin-top:1px; position:relative; }
+  .choice[aria-checked="true"] .dot { border-color:var(--orange); }
+  .choice[aria-checked="true"] .dot::after { content:""; position:absolute; inset:4px; border-radius:50%; background:var(--orange); }
+  .choice b { display:block; }
+  .choice small { color:var(--muted); font-size:13px; }
+  label { display:block; font-weight:700; margin:0 0 14px; }
+  label small { font-weight:400; color:var(--muted); }
+  label:last-child { margin-bottom:0; }
+  input, select, textarea { display:block; width:100%; margin-top:6px; padding:12px; font:inherit; font-weight:400; border:2px solid var(--line); border-radius:10px; background:#fff; color:var(--ink); }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--orange); }
+
+  /* pieces */
+  .item { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .item .n { flex:none; width:58px; font-weight:700; font-size:14px; }
+  .item input { margin-top:0; flex:1; min-width:0; }
+  .item .rm { flex:none; width:40px; height:44px; border:0; background:none; font-size:22px; color:#999; cursor:pointer; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 10px; }
+  .chip { border:1.5px solid var(--line); background:#fafafa; border-radius:999px; padding:7px 12px; font:inherit; font-size:14px; cursor:pointer; color:var(--ink); }
+  .add { border:2px dashed var(--line); background:none; border-radius:10px; width:100%; padding:12px; font:inherit; font-weight:700; color:var(--ink); cursor:pointer; }
+  .check { display:flex; align-items:center; gap:12px; padding:12px; border:2px solid var(--line); border-radius:10px; margin-bottom:8px; font-weight:400; cursor:pointer; }
+  .check input { width:22px; height:22px; margin:0; flex:none; accent-color:var(--orange); }
+  .check.on { border-color:var(--orange); background:#fff5ee; }
+  .check .n { font-weight:700; font-size:14px; width:54px; flex:none; }
+  .count { font-size:14px; color:var(--muted); margin:8px 0 0; }
+
+  .err { color:var(--err); font-weight:600; min-height:1.2em; margin:14px 2px 0; }
+  .btn { display:block; width:100%; margin-top:12px; padding:16px; font:inherit; font-size:18px; font-weight:700; border:0; border-radius:12px; background:var(--ink); color:#fff; cursor:pointer; }
+  .btn:disabled { opacity:.45; cursor:default; }
+  .done { text-align:center; padding:28px 16px; }
+  .done .tick { width:64px; height:64px; border-radius:50%; background:var(--ok); color:#fff; font-size:38px; line-height:64px; margin:0 auto 10px; }
+  .done h2 { margin:0 0 6px; }
+  .done p { color:var(--muted); margin:0 0 6px; }
+  .note { font-size:14px; background:#fff5ee; border-left:4px solid var(--orange); padding:10px 12px; border-radius:6px; margin-top:12px; text-align:left; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="stripe"></div>
+    <h1>Upholstery Check-In</h1>
+    <p>One entry per client, every time upholstery changes hands.</p>
+  </header>
+
+  <form id="f" novalidate>
+    <div class="card">
+      <p class="q">What are you logging?</p>
+      <div class="choices" id="statuses" role="radiogroup"></div>
+    </div>
+
+    <div class="card" id="newClient" hidden>
+      <label>Client name <small>exactly as on the orange tape</small>
+        <input id="client" autocomplete="off" autocapitalize="words">
+      </label>
+    </div>
+
+    <div class="card" id="existing" hidden>
+      <label>Client / job
+        <select id="job"></select>
+      </label>
+      <label id="otherWrap" hidden>Client name <small>exactly as on the orange tape</small>
+        <input id="other" autocomplete="off" autocapitalize="words">
+      </label>
+    </div>
+
+    <div class="card" id="piecesCard" hidden>
+      <div id="entry">
+        <p class="q">Pieces</p>
+        <p class="hint">One line per piece. Tap a name or type your own.</p>
+        <div class="chips" id="chips"></div>
+        <div id="items"></div>
+        <button type="button" class="add" id="addItem">+ Add another piece</button>
+      </div>
+      <div id="checklist" hidden>
+        <p class="q">Which pieces do you have?</p>
+        <p class="hint">Uncheck any piece that isn't with you.</p>
+        <div id="checks"></div>
+      </div>
+      <p class="count" id="count"></p>
+    </div>
+
+    <div class="card" id="details" hidden>
+      <label>Your name
+        <select id="tech"></select>
+      </label>
+      <label>Notes <small>(optional)</small>
+        <textarea id="notes" rows="3" placeholder="Damage, color, missing pieces, special instructions"></textarea>
+      </label>
+    </div>
+
+    <p class="err" id="err" role="alert"></p>
+    <button class="btn" id="go" type="submit" disabled>Submit</button>
+  </form>
+
+  <div class="card done" id="done" hidden>
+    <div class="tick">&#10003;</div>
+    <h2>Logged</h2>
+    <p id="doneMsg"></p>
+    <div class="note" id="doneNote"></div>
+    <button class="btn" id="again" type="button">Log another client</button>
+  </div>
+</main>
+
+<script>
+var DATA = <?!= data ?>;
+var HELP = {
+  'Checked in at shop': 'You just brought it back from a client (alerts the Director)',
+  'Ready for reinstallation': 'It’s back from Tucson and in the shop (alerts the Director)',
+  'Scheduled': 'The reinstall is on the calendar (closes the job)'
+};
+var QUICK = ['Seat pad', 'Back pad', 'Head pad', 'Bench pad', 'Arm pad', 'Roller pad', 'Leg pad', 'Chest pad'];
+var state = { status: '', mode: 'entry' };
+var $ = function (id) { return document.getElementById(id); };
+var TECH_KEY = 'ace-upholstery-tech';
+
+function remembered() { try { return localStorage.getItem(TECH_KEY) || ''; } catch (e) { return ''; } }
+function remember(v) { try { localStorage.setItem(TECH_KEY, v); } catch (e) {} }
+
+function option(sel, value, text, placeholder) {
+  var o = document.createElement('option');
+  o.value = value; o.textContent = text || value;
+  if (placeholder) { o.disabled = true; o.selected = true; }
+  sel.appendChild(o);
+}
+
+function jobPieces(label) {
+  for (var i = 0; i < DATA.openJobs.length; i++) if (DATA.openJobs[i].label === label) return DATA.openJobs[i].pieces || [];
+  return [];
+}
+
+function renderLists() {
+  var job = $('job'); job.innerHTML = '';
+  option(job, '', DATA.openJobs.length ? 'Pick the client…' : 'No open jobs – pick “Not in list”', true);
+  DATA.openJobs.forEach(function (j) { option(job, j.label); });
+  option(job, DATA.notListed);
+
+  var tech = $('tech'); tech.innerHTML = '';
+  option(tech, '', 'Pick your name…', true);
+  DATA.techs.forEach(function (t) { option(tech, t); });
+  var r = remembered();
+  if (r && DATA.techs.indexOf(r) !== -1) tech.value = r;
+}
+
+function renderStatuses() {
+  var box = $('statuses'); box.innerHTML = '';
+  DATA.statuses.forEach(function (s) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'choice'; b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', String(state.status === s));
+    b.innerHTML = '<span class="dot"></span><span><b></b><small></small></span>';
+    b.querySelector('b').textContent = s;
+    b.querySelector('small').textContent = HELP[s] || '';
+    b.addEventListener('click', function () { pick(s); });
+    box.appendChild(b);
+  });
+}
+
+/* ---- typed pieces: Item 1, Item 2, ... ---- */
+function itemInputs() { return Array.prototype.slice.call($('items').querySelectorAll('input')); }
+
+function renumber() {
+  var rows = $('items').querySelectorAll('.item');
+  for (var i = 0; i < rows.length; i++) {
+    rows[i].querySelector('.n').textContent = 'Item ' + (i + 1);
+    rows[i].querySelector('.rm').hidden = rows.length === 1;
+  }
+  updateCount();
+}
+
+function addItem(value, focus) {
+  var row = document.createElement('div');
+  row.className = 'item';
+  row.innerHTML = '<span class="n"></span><input autocomplete="off" autocapitalize="sentences" placeholder="e.g. Head pad"><button type="button" class="rm" aria-label="Remove piece">&times;</button>';
+  var input = row.querySelector('input');
+  input.value = value || '';
+  input.addEventListener('input', updateCount);
+  row.querySelector('.rm').addEventListener('click', function () { row.remove(); renumber(); });
+  $('items').appendChild(row);
+  renumber();
+  if (focus) input.focus();
+  return input;
+}
+
+function quickAdd(name) {
+  var empty = itemInputs().filter(function (i) { return !i.value.trim(); })[0];
+  if (empty) { empty.value = name; updateCount(); }
+  else addItem(name, false);
+}
+
+function resetItems() { $('items').innerHTML = ''; addItem('', false); }
+
+/* ---- checklist for an existing job ---- */
+function renderChecks(pieces) {
+  var box = $('checks'); box.innerHTML = '';
+  pieces.forEach(function (p, i) {
+    var l = document.createElement('label');
+    l.className = 'check on';
+    l.innerHTML = '<input type="checkbox" checked><span class="n"></span><span class="t"></span>';
+    l.querySelector('.n').textContent = 'Item ' + (i + 1);
+    l.querySelector('.t').textContent = p;
+    l.querySelector('input').value = p;
+    l.querySelector('input').addEventListener('change', function (e) { l.classList.toggle('on', e.target.checked); updateCount(); });
+    box.appendChild(l);
+  });
+}
+
+function setMode() {
+  var isNew = state.status === DATA.newStatus;
+  var job = $('job').value;
+  var known = !isNew && job && job !== DATA.notListed ? jobPieces(job) : [];
+  var isFinal = state.status === DATA.finalStatus;
+  state.mode = known.length ? 'check' : 'entry';
+  $('entry').hidden = state.mode !== 'entry';
+  $('checklist').hidden = state.mode !== 'check';
+  if (state.mode === 'check') renderChecks(known);
+  else if (!itemInputs().length) resetItems();
+  // Scheduling a known job just closes it, so the pieces don't need checking again.
+  $('piecesCard').hidden = (!isNew && !job) || (isFinal && state.mode === 'check');
+  updateCount();
+}
+
+function collectPieces() {
+  if (state.mode === 'check') {
+    return Array.prototype.slice.call($('checks').querySelectorAll('input:checked')).map(function (c) { return c.value; });
+  }
+  return itemInputs().map(function (i) { return i.value.trim(); }).filter(Boolean);
+}
+
+function updateCount() {
+  var n = collectPieces().length;
+  var total = state.mode === 'check' ? $('checks').querySelectorAll('input').length : 0;
+  $('count').textContent = state.mode === 'check'
+    ? n + ' of ' + total + ' piece' + (total === 1 ? '' : 's')
+    : n + ' piece' + (n === 1 ? '' : 's');
+}
+
+function pick(s) {
+  state.status = s;
+  renderStatuses();
+  var isNew = s === DATA.newStatus;
+  $('newClient').hidden = !isNew;
+  $('existing').hidden = isNew;
+  $('details').hidden = false;
+  $('go').disabled = false;
+  $('err').textContent = '';
+  setMode();
+  (isNew ? $('newClient') : $('existing')).scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+$('job').addEventListener('change', function () {
+  $('otherWrap').hidden = $('job').value !== DATA.notListed;
+  setMode();
+});
+$('addItem').addEventListener('click', function () { addItem('', true); });
+QUICK.forEach(function (name) {
+  var c = document.createElement('button');
+  c.type = 'button'; c.className = 'chip'; c.textContent = '+ ' + name;
+  c.addEventListener('click', function () { quickAdd(name); });
+  $('chips').appendChild(c);
+});
+
+$('f').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var d = {
+    status: state.status, client: $('client').value, job: $('job').value, other: $('other').value,
+    pieces: collectPieces(), tech: $('tech').value, notes: $('notes').value
+  };
+  var err = '';
+  if (!d.status) err = 'Pick what you are logging.';
+  else if (d.status === DATA.newStatus && !d.client.trim()) err = 'Enter the client name from the orange tape.';
+  else if (d.status !== DATA.newStatus && !d.job) err = 'Pick the client / job.';
+  else if (d.job === DATA.notListed && d.status !== DATA.newStatus && !d.other.trim()) err = 'Type the client name from the orange tape.';
+  else if (!d.pieces.length) err = state.mode === 'check' ? 'Check at least one piece.' : 'Add at least one piece.';
+  else if (!d.tech) err = 'Pick your name.';
+  if (err) { $('err').textContent = err; return; }
+
+  remember(d.tech);
+  $('err').textContent = '';
+  $('go').disabled = true; $('go').textContent = 'Saving…';
+  google.script.run
+    .withSuccessHandler(function (res) {
+      DATA = res.data;
+      $('doneMsg').textContent = res.client + ' → ' + res.status + ' (' + d.pieces.length + ' piece' + (d.pieces.length === 1 ? '' : 's') + ')';
+      $('doneNote').textContent = res.status === DATA.backStatus
+        ? 'The Director has been emailed to schedule the reinstall.'
+        : res.status === DATA.newStatus
+          ? 'The Director has been emailed. Make sure every piece has orange tape with the client name.'
+          : 'Job closed. It is off the open-jobs list.';
+      $('f').hidden = true; $('done').hidden = false;
+      window.scrollTo(0, 0);
+    })
+    .withFailureHandler(function (e) {
+      $('err').textContent = (e && e.message) ? e.message : 'Something went wrong. Try again.';
+      $('go').disabled = false; $('go').textContent = 'Submit';
+    })
+    .submitEntry(d);
+});
+
+$('again').addEventListener('click', function () {
+  $('f').reset();
+  state.status = '';
+  ['newClient', 'existing', 'piecesCard', 'details', 'otherWrap'].forEach(function (id) { $(id).hidden = true; });
+  $('items').innerHTML = '';
+  $('go').disabled = true; $('go').textContent = 'Submit';
+  renderStatuses(); renderLists();
+  $('done').hidden = true; $('f').hidden = false;
+  window.scrollTo(0, 0);
+});
+
+renderStatuses();
+renderLists();
+</script>
+</body>
+</html>
