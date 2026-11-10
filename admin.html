@@ -35,6 +35,10 @@
   .btn.block { width:100%; margin-top:12px; padding:14px; font-size:17px; }
   .btn.ghost { background:#fff; color:var(--brand); border:1.5px solid var(--line); }
   .btn.ok { background:var(--ok); }
+  .btn.danger { background:var(--err); }
+  .btn.danger-ghost { background:#fff; color:var(--err); border:1.5px solid #f1c4c0; margin-left:auto; }
+  .confirm.del { background:var(--err-soft); }
+  .confirm-text { margin:0; font-size:14px; }
   .btn:disabled { opacity:.55; cursor:default; }
   .spin { width:16px; height:16px; border-radius:50%; border:3px solid rgba(255,255,255,.35); border-top-color:#fff; animation:spin .8s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
@@ -250,6 +254,9 @@
     var mark = el('button', isReady ? 'btn' : 'btn ghost', 'Mark scheduled');
     mark.type = 'button';
     actions.appendChild(mark);
+    var del = el('button', 'btn danger-ghost', 'Delete');
+    del.type = 'button';
+    actions.appendChild(del);
     card.appendChild(actions);
 
     var conf = el('div', 'confirm');
@@ -267,7 +274,7 @@
     conf.appendChild(err);
     card.appendChild(conf);
 
-    mark.addEventListener('click', function () { openConfirm = j.job; conf.hidden = false; actions.hidden = true; });
+    mark.addEventListener('click', function () { openConfirm = j.job; conf.hidden = false; dconf.hidden = true; actions.hidden = true; });
     if (!conf.hidden) actions.hidden = true;
     cancel.addEventListener('click', function () { openConfirm = null; conf.hidden = true; actions.hidden = false; err.textContent = ''; });
 
@@ -293,6 +300,43 @@
       }).catch(function (e) {
         ok.disabled = false; cancel.disabled = false; ok.textContent = 'Confirm scheduled';
         err.textContent = netError(e) + ' It won’t be logged twice.';
+      });
+    });
+
+    // ---- delete ----
+    var dconf = el('div', 'confirm del');
+    dconf.hidden = openConfirm !== 'del:' + j.job;
+    dconf.appendChild(el('p', 'confirm-text', 'Delete ' + j.client + '? It disappears from this dashboard and from the techs’ client list. The Log tab keeps a record.'));
+    var drow = el('div', 'row');
+    var dcancel = el('button', 'btn ghost', 'Cancel'); dcancel.type = 'button';
+    var dok = el('button', 'btn danger', 'Delete job'); dok.type = 'button';
+    drow.appendChild(dcancel); drow.appendChild(dok);
+    dconf.appendChild(drow);
+    var derr = el('p', 'err'); derr.setAttribute('role', 'alert');
+    dconf.appendChild(derr);
+    card.appendChild(dconf);
+    if (!dconf.hidden) actions.hidden = true;
+
+    del.addEventListener('click', function () { openConfirm = 'del:' + j.job; dconf.hidden = false; conf.hidden = true; actions.hidden = true; });
+    dcancel.addEventListener('click', function () { openConfirm = null; dconf.hidden = true; actions.hidden = false; derr.textContent = ''; });
+
+    var drid = null;
+    dok.addEventListener('click', function () {
+      drid = drid || ('del-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8));
+      dok.disabled = true; dcancel.disabled = true; dok.innerHTML = '<span class="spin"></span>Deleting…'; derr.textContent = '';
+      post({ action: 'delete', key: pin, job: j.job, rid: drid }).then(function (res) {
+        if (!res.ok) {
+          dok.disabled = false; dcancel.disabled = false; dok.textContent = 'Delete job';
+          if (badPin(res.error)) { pin = ''; store(PIN_KEY, null); showGate(res.error); return; }
+          derr.textContent = res.error || 'Something went wrong. Try again.';
+          return;
+        }
+        openConfirm = null;
+        toast(j.client + ' deleted.');
+        render(res);
+      }).catch(function (e) {
+        dok.disabled = false; dcancel.disabled = false; dok.textContent = 'Delete job';
+        derr.textContent = netError(e);
       });
     });
     return card;
